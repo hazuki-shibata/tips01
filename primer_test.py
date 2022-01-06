@@ -3,35 +3,38 @@ import sqlite3
 import pandas as pd
 
 #シーケンスデータファイル
-# filepath_data_csv = r"C:\Users\sh527\Downloads\a5m2_2.16.2_x64\data.csv"
 filepath_data_csv = r"data.csv"
 #プライマーファイル
-# filepath_primer_csv = r"C:\Users\sh527\Downloads\a5m2_2.16.2_x64\primer.csv"
 filepath_primer_csv = r"primer.csv"
 #結果ファイル名
-# filepath_result_csv = r"C:\Users\sh527\Downloads\a5m2_2.16.2_x64\result.csv"
 filepath_result_csv = r"result.csv"
 
 #作業DB
 filepath_db = r"test.db"
-#一時テーブル
-sql_create_tmp = "CREATE TABLE IF NOT EXISTS M_PATTERN( primer name text primary key , groupname text , pattern text , length INTEGER , GC REAL , Tm , stockConcentration , stockLocation , memo)"
-#マスタテーブル
-sql_create_mst = "CREATE TABLE IF NOT EXISTS M_SEQUENCE(name text primary key, sequence_data text)"
-#結果テーブル
-sql_create_result = "CREATE TABLE IF NOT EXISTS M_TEST(primer text primary key, sequence_name text)"
+#パターンテーブル
+sql_create_pattern = "CREATE TABLE IF NOT EXISTS M_PATTERN( primer name text primary key , groupname text , pattern text , length INTEGER , GC REAL , Tm , stockConcentration , stockLocation , memo)"
+#シーケンスデータテーブル
+sql_create_data = "CREATE TABLE IF NOT EXISTS M_SEQUENCE(name text primary key, sequence_data text)"
 
 #SQL
 sql_select_execute ='''
-
 SELECT
-       t1.primer
+        t1.primer
+       ,t1.groupname
+       ,t1.pattern
+       ,t1.length
+       ,t1.GC
+       ,t1.Tm
+       ,t1.stockConcentration
+       ,t1.stockLocation
+       ,t1.memo    
+       ,t1.primer
        ,group_concat(t2.name, ',') 
   FROM
        m_pattern t1
      , m_sequence t2 
  WHERE
-       t2.sequence_data LIKE '%'|| t1.pattern || '%'
+       t2.sequence_data LIKE '%'|| t1.pattern ||'%'
 GROUP BY
        t1.primer 
 '''
@@ -39,12 +42,10 @@ def create_table():
     #DBをに接続してテーブルを作成
     with sqlite3.connect(filepath_db) as conn:
         cur = conn.cursor()
-        #一時テーブル
-        cur.execute(sql_create_tmp)
-        #マスタテーブル
-        cur.execute(sql_create_mst)
-        #結果テーブル
-        cur.execute(sql_create_result)
+        #パターンテーブル
+        cur.execute(sql_create_pattern)
+        #シーケンスデータテーブル
+        cur.execute(sql_create_data)
         #コミット
         conn.commit()
 
@@ -72,13 +73,11 @@ def insert_data():
 def execute():
     with sqlite3.connect(filepath_db) as conn:
         # SQLを実行し、結果を取得
-        # test = pd.read_sql_query(sql_delete_m_test,conn)
-        # print(test)
         df = pd.read_sql_query(sql_select_execute,conn)
         print(df)
         # CSVに保存する
         # INDEXを出力しない
-        df.to_csv(filepath_result_csv, index=False, header=['primer', 'sequence_name'])
+        df.to_csv(filepath_result_csv, index=False, header=['primer', 'groupname', 'pattern', 'length', 'GC', 'Tm', 'stockConcentration', 'stockLocation' ,'memo' , 'primer', 'sequence_name'])
         
 if __name__ == '__main__':
     # テーブル作成
